@@ -17,3 +17,6 @@ client = CurseClient(curse_api_key)
 # [9]: ADDON_FILE - Get information on a specific file for an addon
 # [10]: FILE_DESCRIPTION - Description of a file
 print(client.GAME)
+
+print(client.GAME)
+print(client.GAME)

@@ -1,0 +1,28 @@
+{
+    "minecraft": {
+        "version": "1.18.2",
+        "modLoaders": [
+            {
+                "id": "forge-40.2.0",
+                "primary": true
+            }
+        ]
+    },
+    "manifestType": "minecraftModpack",
+    "manifestVersion": 1,
+    "name": "modpack name",
+    "version": "0.0.1",
+    "author": "Jaggard",
+    "files": [
+        {
+            "projectID": 560156,
+            "fileID": 4565123,
+            "required": true
+        },
+        {
+            "projectID": 243121,
+            "fileID": 3840125,
+            "required": true
+        }
+    ]
+}

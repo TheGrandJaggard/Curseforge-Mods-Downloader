@@ -1,0 +1,10 @@
+{
+    "minecraft": {
+        "version": "1.18.2"
+    },
+    "manifestType": "minecraftModpack",
+    "manifestVersion": 1,
+    "name": "modpack name",
+    "version": "0.0.1",
+    "author": "Jaggard"
+}

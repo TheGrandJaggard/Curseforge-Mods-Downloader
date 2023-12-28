@@ -1,10 +1,20 @@
 {
     "minecraft": {
-        "version": "1.18.2"
+        "version": "1.18.2",
+        "modLoaders": [
+            {
+                "id": "forge-40.2.4",
+                "primary": true
+            }
+        ]
     },
     "manifestType": "minecraftModpack",
     "manifestVersion": 1,
     "name": "modpack name",
     "version": "0.0.1",
-    "author": "Jaggard"
+    "author": "Jaggard",
+    "overrides": "overrides",
+    "files": [
+        
+    ]
 }

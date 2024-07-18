@@ -53,3 +53,4 @@ def get_file_id(mod_id:int, minecraft_version:str) -> tuple[int, list] | tuple[N
 
 if __name__ == '__main__':
     print(get_mod_URL(306612))
+    

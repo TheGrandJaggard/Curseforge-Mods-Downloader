@@ -3,24 +3,29 @@ import json
 import shutil
 
 def read_curse_api_key() -> str:
-    with open("resources/curse_api_key.txt", "r") as file: # get our curse api key from its file
+    with open('resources/curse_api_key.txt', 'r') as file: # get our curse api key from 'resources/curse_api_key.txt'
         curse_api_key = file.read()
         if curse_api_key is None: print("No Curseforge API key found!"); exit()
         else: return curse_api_key
 
 def read_manifest() -> list:
     try:
-        with open('resources/Staging Folder/manifest.json') as file: # open up existing manifest
+        with open('resources/staging_folder/manifest.json') as file: # open up existing manifest
             return json.load(file)
     except Exception:
         exit("Trying to read from a manifest file that does not exist")
 
-def export_json(manifest):
-    with open('resources/Staging Folder/manifest.json', 'w') as file: # save our manifest to manifest.json
+def export_json(manifest) -> dict:
+    with open('resources/staging_folder/manifest.json', 'w') as file: # save our manifest to manifest.json
         json.dump(manifest, file, indent = 4)
 
 def zip_manifest_file(name:str) -> None:
     if os.path.exists(f"resources/{name}.zip"):
-        os.remove("resources/{name}.zip")
+        os.remove(f"resources/{name}.zip")
+    shutil.make_archive(f"resources/{name}", 'zip', 'resources/staging_folder')
     
-    shutil.make_archive(f"resources/{name}", 'zip', 'resources/Staging Folder')
+    return os.path.abspath(f"resources/{name}.zip")
+
+if __name__ == '__main__':
+    print("Manifest:\n", read_manifest())
+    

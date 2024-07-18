@@ -3,7 +3,7 @@ import googlesheets_lib as gs
 import curseforge_lib as cf
 
 # Google Sheet Settings
-WORKBOOK_NAME = 'Minecraft Modpack Lists'
+GWORKBOOK_NAME = 'Minecraft Modpack Lists'
 SHEET_NAME = 'Create Magic 4 (2023&24)'
 # Manifest Settings
 MINECRAFT_VERSION = '1.18.2'
@@ -14,19 +14,19 @@ MODPACK_AUTHOR = 'Jaggard'
 # MODE options: 'EDIT', 'NEW'
 MODE = 'EDIT'
 
-def create_manifest(gsheet_slugs:list[str]):
-    manifest = form_manifest()
+def create_manifest(gsheet_mod_slugs:list[str]):
+    manifest = load_manifest()
     
     json_mods:list[dict] = manifest['files'].copy()
     json_slugs:list[str] = list(json_mod['slug'] for json_mod in json_mods)
     print("json slugs:", "\n".join(json_mods))
 
-    for gsheet_slug in gsheet_slugs:
+    for gsheet_slug in gsheet_mod_slugs:
         json_mods.extend(get_mod_data(gsheet_slug, json_slugs))
     
 
     print("\nChanges:")
-    for gsheet_slug in gsheet_slugs:
+    for gsheet_slug in gsheet_mod_slugs:
         if gsheet_slug not in list(mod['slug'] for mod in manifest['files']):
             print(f"  Added {gsheet_slug}")
     
@@ -36,19 +36,19 @@ def create_manifest(gsheet_slugs:list[str]):
             json_mods.remove(mod)
     
     for mod in json_mods.copy():
-        if (mod['slug'] not in gsheet_slugs) and (not is_depended_on(mod, json_mods)):
+        if (mod['slug'] not in gsheet_mod_slugs) and (not is_depended_on(mod, json_mods)):
             print(f"  Removed {mod['slug']}")
             json_mods.remove(mod)
 
     manifest['files'] = json_mods # here we put the mod data into our manifest
     fl.export_json(manifest)
 
-def form_manifest():
-    manifest = dict() if (MODE == 'NEW') else fl.read_manifest()
+def load_manifest():
+    manifest = (dict() if (MODE == 'NEW') else fl.read_manifest())
 
     manifest['minecraft'] = dict()
     manifest['minecraft']['version'] = MINECRAFT_VERSION
-    manifest['minecraft']['modLoaders'] = [{'id': cf.get_forge_version(MINECRAFT_VERSION), 'primary': True}]
+    manifest['minecraft']['modLoaders'] = [{'id': f'forge-{FORGE_VERSION}', 'primary': True}]
     manifest['manifestType'] = 'minecraftModpack'
     manifest['manifestVersion'] = 1
     manifest['name'] = MODPACK_NAME
@@ -60,17 +60,16 @@ def form_manifest():
 
 def is_depended_on(mod_to_check:dict, json_mods:list[dict]) -> bool:
     for json_mod in json_mods:
-        if "dependencies" in json_mod.keys():
+        if 'dependencies' in json_mod.keys():
             for dependency in json_mod['dependencies']:
                 if mod_to_check['projectID'] == dependency: return True
     return False
 
 def get_mod_data(mod_slug_or_id:str|int, json_slugs:list[str]) -> list[dict]:
     '''Returns list of added mods'''
-    print(f"Processing {mod_slug_or_id}")
 
     if isinstance(mod_slug_or_id, int):
-        mod_slug = "Unknown"
+        mod_slug = f"{mod_slug_or_id}"
         mod_id = mod_slug_or_id
     else:
         mod_slug = mod_slug_or_id
@@ -99,16 +98,20 @@ def get_mod_data(mod_slug_or_id:str|int, json_slugs:list[str]) -> list[dict]:
         mod['problem'] = True
         return [mod]
     
-    mod_list = [mod]
-    json_slugs.append(mod)
+    added_mods_list = [mod]
+    json_slugs.append(mod_slug)
     for mod_dependency in file_dependencies: # if there is a dependency then get its info and add it to the mod list
-        mod_list.extend(get_mod_data(mod_dependency['modId'], json_slugs))
+        added_mods_list.extend(get_mod_data(mod_dependency['modId'], json_slugs))
     
-    return mod_list
+    return added_mods_list
 
-if __name__ == "__main__":
-    slugs = gs.sheet(WORKBOOK_NAME, SHEET_NAME).get_slugs()
+if __name__ == '__main__':
+    sheet = gs.sheet(GWORKBOOK_NAME, SHEET_NAME)
+    mod_slugs = sheet.get_mod_slugs()
 
-    create_manifest(slugs)
+    create_manifest(mod_slugs)
 
-    fl.zip_manifest_file(MODPACK_NAME)
+    output_path = fl.zip_manifest_file(MODPACK_NAME)
+
+    print(f"Modpack output to: '{output_path}'")
+    

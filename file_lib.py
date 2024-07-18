@@ -2,11 +2,21 @@ import os
 import json
 import shutil
 
-def read_curse_api_key() -> str:
-    with open('resources/curse_api_key.txt', 'r') as file: # get our curse api key from 'resources/curse_api_key.txt'
-        curse_api_key = file.read()
-        if curse_api_key is None: print("No Curseforge API key found!"); exit()
-        else: return curse_api_key
+class Settings():
+    def __init__(self, path:str):
+        with open(path, 'r') as file:
+            json_file = json.load(file)
+            self.curse_api_key = json_file['curse_api_key']
+            self.gworkbook_name = json_file['gworkbook_name']
+            self.sheet_name = json_file['sheet_name']
+            self.slug_blacklist = json_file['slug_blacklist']
+            self.minecraft_version = json_file['minecraft_version']
+            self.forge_version = json_file['forge_version']
+            self.modpack_name = json_file['modpack_name']
+            self.modpack_version = json_file['modpack_version']
+            self.modpack_author = json_file['modpack_author']
+            self.manual_files = json_file['manual_files']
+            self.mode = json_file['mode']
 
 def read_manifest() -> list:
     try:

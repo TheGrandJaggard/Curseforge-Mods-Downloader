@@ -2,29 +2,8 @@ import file_lib as fl
 import googlesheets_lib as gs
 import curseforge_lib as cf
 
-# Google Sheet Settings
-GWORKBOOK_NAME = 'Minecraft Modpack Lists'
-SHEET_NAME = 'Create Magic 4 (2023&24)'
-SLUG_BLACKLIST = ['dcintegration', 'first-join-message', 'ftb-backups-2', 'chicken-drop-feathers',
-                  'makeup-ultra-fast-shader', 'stay-true', 'stay-true-modded-compats', 'staytrue-nobushyleaves']
-# Manifest Settings
-MINECRAFT_VERSION = '1.18.2'
-FORGE_VERSION = '40.2.14' # https://files.minecraftforge.net
-MODPACK_NAME = 'Create & Magic 4 (Dev)'
-MODPACK_VERSION = '1.4.1'
-MODPACK_AUTHOR = 'Jaggard'
-MANUAL_FILES = [
-    { 'projectID': 431203, 'fileID': 5206750, 'hyperlink': 'https://www.curseforge.com/minecraft/shaders/makeup-ultra-fast-shader' },
-    { 'projectID': 353554, 'fileID': 3598573, 'hyperlink': 'https://www.curseforge.com/minecraft/texture-packs/stay-true' },
-    { 'projectID': 576591, 'fileID': 3683671, 'hyperlink': 'https://www.curseforge.com/minecraft/texture-packs/stay-true-modded-compats' },
-    { 'projectID': 401458, 'fileID': 3683671, 'hyperlink': 'https://www.curseforge.com/minecraft/mc-addons/staytrue-nobushyleaves' },
-    { 'projectID': 300374, 'fileID': 4655082, 'hyperlink': 'https://www.curseforge.com/minecraft/mc-mods/chicken-drop-feathers' },
-]
-# MODE options: 'EDIT', 'NEW'
-MODE = 'EDIT'
-
-def create_manifest(gsheet_mod_slugs:list[str]):
-    manifest = load_manifest()
+def create_manifest(gsheet_mod_slugs:list[str], settings:fl.Settings):
+    manifest = load_manifest(settings)
     original_slugs = list(manifest_mod['slug'] for manifest_mod in manifest['files'])
     
     json_mods:list[dict] = manifest['files'].copy() # this will get updated to contain all added mods
@@ -32,10 +11,10 @@ def create_manifest(gsheet_mod_slugs:list[str]):
     json_ids:list[str] = list(json_mod['projectID'] for json_mod in json_mods) # this will too, through mutilation
 
     for gsheet_slug in gsheet_mod_slugs:
-        if gsheet_slug in SLUG_BLACKLIST: continue
-        json_mods.extend(get_mod_data(gsheet_slug, json_slugs, json_ids))
+        if gsheet_slug in settings.slug_blacklist: continue
+        json_mods.extend(get_mod_data(gsheet_slug, json_slugs, json_ids, settings))
     
-    for file in MANUAL_FILES:
+    for file in settings.manual_files:
         if file['projectID'] not in json_ids:
             json_mods.append({
             'slug': file['hyperlink'].split('/')[-1],
@@ -52,12 +31,12 @@ def create_manifest(gsheet_mod_slugs:list[str]):
             original_slugs.append(mod['slug']) # to remove 'Added' message for this mod
     
     for gsheet_slug in gsheet_mod_slugs:
-        if gsheet_slug not in original_slugs and gsheet_slug not in SLUG_BLACKLIST:
+        if gsheet_slug not in original_slugs and gsheet_slug not in settings.slug_blacklist:
             print(f"  Added {gsheet_slug}")
 
     for mod in json_mods.copy():
         if ((mod['slug'] not in gsheet_mod_slugs)
-            and (mod['slug'] not in (file['hyperlink'].split('/')[-1] for file in MANUAL_FILES))
+            and (mod['slug'] not in (file['hyperlink'].split('/')[-1] for file in settings.manual_files))
             and (not is_depended_on(mod, json_mods))):
 
             print(f"  Removed {mod['slug']}")
@@ -66,17 +45,17 @@ def create_manifest(gsheet_mod_slugs:list[str]):
     manifest['files'] = json_mods # here we put the mod data into our manifest
     fl.export_json(manifest)
 
-def load_manifest():
-    manifest = (dict() if (MODE == 'NEW') else fl.read_manifest())
+def load_manifest(settings:fl.Settings):
+    manifest = (dict() if (settings.mode == 'NEW') else fl.read_manifest())
 
     manifest['minecraft'] = dict()
-    manifest['minecraft']['version'] = MINECRAFT_VERSION
-    manifest['minecraft']['modLoaders'] = [{'id': f'forge-{FORGE_VERSION}', 'primary': True}]
+    manifest['minecraft']['version'] = settings.minecraft_version
+    manifest['minecraft']['modLoaders'] = [{'id': f'forge-{settings.forge_version}', 'primary': True}]
     manifest['manifestType'] = 'minecraftModpack'
     manifest['manifestVersion'] = 1
-    manifest['name'] = MODPACK_NAME
-    manifest['version'] = MODPACK_VERSION
-    manifest['author'] = MODPACK_AUTHOR
+    manifest['name'] = settings.modpack_name
+    manifest['version'] = settings.modpack_version
+    manifest['author'] = settings.modpack_author
     manifest['overrides'] = 'overrides'
     if 'files' not in manifest: manifest['files'] = list()
     return manifest
@@ -88,7 +67,7 @@ def is_depended_on(mod_to_check:dict, json_mods:list[dict]) -> bool:
                 if mod_to_check['projectID'] == dependency: return True
     return False
 
-def get_mod_data(mod_slug_or_id:str|int, json_slugs:list[str], json_ids:list[int]) -> list[dict]:
+def get_mod_data(mod_slug_or_id:str|int, json_slugs:list[str], json_ids:list[int], settings:fl.Settings) -> list[dict]:
     '''Returns list of added mods'''
 
     if isinstance(mod_slug_or_id, int):
@@ -99,11 +78,11 @@ def get_mod_data(mod_slug_or_id:str|int, json_slugs:list[str], json_ids:list[int
         mod_id = 0
 
     if mod_slug in json_slugs: print(f"Slugs already contains {mod_slug}");return [] # if this mod is already on our slug list make no changes
-    if mod_id == 0: mod_id = cf.get_mod_id(mod_slug)
+    if mod_id == 0: mod_id = cf.get_mod_id(mod_slug, settings.curse_api_key)
     if mod_id in json_ids: print(f"J ids already contains {mod_id}");return[] # if this mod is already on our id list make no changes
     else: print(f"Adding {mod_slug}")
     
-    (file_id, file_dependencies) = cf.get_file_id(mod_id, MINECRAFT_VERSION)
+    (file_id, file_dependencies) = cf.get_file_id(mod_id, settings.minecraft_version, settings.curse_api_key)
     if file_dependencies:
         file_dependencies = list(dependency for dependency in file_dependencies if dependency['relationType'] == 3)
     
@@ -124,20 +103,21 @@ def get_mod_data(mod_slug_or_id:str|int, json_slugs:list[str], json_ids:list[int
     json_slugs.append(mod_slug)
     json_ids.append(mod_id)
     for mod_dependency in file_dependencies: # if there is a dependency then get its info and add it to the mod list
-        added_mods_list.extend(get_mod_data(mod_dependency['modId'], json_slugs, json_ids))
+        added_mods_list.extend(get_mod_data(mod_dependency['modId'], json_slugs, json_ids, settings))
     
     return added_mods_list
 
 if __name__ == '__main__':
-    sheet = gs.sheet(GWORKBOOK_NAME, SHEET_NAME)
+    settings = fl.Settings('resources/settings.json')
+    sheet = gs.sheet(settings.gworkbook_name, settings.sheet_name)
     mod_slugs = sheet.get_mod_slugs()
 
-    create_manifest(mod_slugs)
+    create_manifest(mod_slugs, settings)
 
     for non_mod_hyperlink in sheet.get_non_mod_hyperlinks():
-        if non_mod_hyperlink in (file['hyperlink'] for file in MANUAL_FILES): continue
+        if non_mod_hyperlink in (file['hyperlink'] for file in settings.manual_files): continue
         print(f"  {non_mod_hyperlink} must be added manually")
-    output_path = fl.zip_manifest_file(MODPACK_NAME)
+    output_path = fl.zip_manifest_file(settings.modpack_name)
 
     print(f"Modpack output to: '{output_path}'")
     

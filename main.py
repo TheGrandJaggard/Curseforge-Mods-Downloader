@@ -10,8 +10,8 @@ SLUG_BLACKLIST = ['dcintegration', 'first-join-message', 'ftb-backups-2', 'chick
 # Manifest Settings
 MINECRAFT_VERSION = '1.18.2'
 FORGE_VERSION = '40.2.14' # https://files.minecraftforge.net
-MODPACK_NAME = 'Create & Magic 4'
-MODPACK_VERSION = '1.4.0'
+MODPACK_NAME = 'Create & Magic 4 (Dev)'
+MODPACK_VERSION = '1.4.1'
 MODPACK_AUTHOR = 'Jaggard'
 MANUAL_FILES = [
     { 'projectID': 431203, 'fileID': 5206750, 'hyperlink': 'https://www.curseforge.com/minecraft/shaders/makeup-ultra-fast-shader' },
